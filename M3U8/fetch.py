@@ -111,5 +111,65 @@ async def main() -> None:
     for event_name, event_info in sorted(additions.items()):
         name_upper = event_name.upper()
         
-        # Saringan ketat pembuang cabang non-sepakbola
-        banned_sports = ["BASK
+        # Saringan ketat pembuang cabang non-sepakbola (Dibuat multi-baris agar tidak terpotong)
+        banned_sports = [
+            "BASKETBALL", "VOLLEYBALL", "TENNIS", "WIMBLEDON", 
+            "MLB", "BASEBALL", "NFL", "F1", "MOTOGP", 
+            "UFC", "BOXING", "CRICKET", "RUGBY", "GOLF"
+        ]
+        if any(banned in name_upper for banned in banned_sports):
+            continue
+            
+        # Memastikan aroma kompetisi sepakbola kaki tetap terjaga (Dibuat multi-baris)
+        keywords_bola = [
+            "FOOTBALL", "SOCCER", "LIGA", "LEAGUE", "CUP", 
+            "UEFA", "FIFA", "COPA", "CHAMPIONSHIP", "VS", "X"
+        ]
+        if not any(key in name_upper for key in keywords_bola):
+            continue
+            
+        soccer_count += 1
+
+        tvg_id, logo, refer, source = (
+            event_info[x] for x in ("tvg-id", "logo", "refer", "source")
+        )
+        ua = event_info.get("user-agent", network.UA)
+
+        extinf_all = (
+            f'#EXTINF:-1 tvg-chno="{tvg_chno + soccer_count}" tvg-id="{tvg_id}" '
+            f'tvg-name="{event_name}" tvg-logo="{logo}" group-title="Live Football Events",{event_name}'
+        )
+
+        extinf_live = (
+            f'#EXTINF:-1 tvg-chno="{soccer_count}" tvg-id="{tvg_id}" '
+            f'tvg-name="{event_name}" tvg-logo="{logo}" group-title="Live Football Events",{event_name}'
+        )
+
+        vlc_block: list[str] = [
+            f"#EXTVLCOPT:http-referrer={refer}",
+            f"#EXTVLCOPT:http-origin={refer}",
+            f"#EXTVLCOPT:http-user-agent={ua}",
+            source,
+        ]
+
+        combined_channels.extend(["\n" + extinf_all, *vlc_block])
+        live_events.extend(["\n" + extinf_live, *vlc_block])
+
+    COMBINED_FILE.write_text(
+        "\n".join(base_m3u8 + combined_channels),
+        encoding="utf-8",
+    )
+    log.info(f"Base + Football Events saved to {COMBINED_FILE.resolve()}")
+
+    EVENTS_FILE.write_text(
+        '#EXTM3U url-tvg="https://raw.githubusercontent.com/doms9/iptv/refs/heads/default/M3U8/TV.xml"\n'
+        + "\n".join(live_events),
+        encoding="utf-8",
+    )
+    log.info(f"Football Events saved to {EVENTS_FILE.resolve()}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+    for hndlr in log.handlers:
+        hndlr.flush()
+        hndlr.stream.write("\n")
