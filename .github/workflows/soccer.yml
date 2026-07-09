@@ -2,34 +2,20 @@ name: Soccer IPTV Scraper (UV Powered)
 
 on:
   schedule:
-    # Berjalan setiap 1 jam sekali untuk memeriksa pertandingan bola kaki
-    - cron: "0 * * * *"
-  workflow_dispatch: # Mengizinkan kamu klik tombol manual "Run workflow" kapan saja
+    # Berjalan otomatis setiap 2 jam sekali agar aman dan hemat kuota
+    - cron: "0 */2 * * *"
+  workflow_dispatch: # Mengizinkan tombol manual "Run workflow" kapan saja
 
 jobs:
   soccer-fetcher:
     runs-on: ubuntu-latest
     steps:
-      - name: Check Live Match Time (WIB Gate)
-        id: check_time
-        run: |
-          # Mengunci jam aktif berdasarkan Zona Waktu Jakarta/WIB (+7)
-          # Laga bola biasanya ramai dari jam 3 sore (15) hingga jam 5 subuh (05) besoknya
-          hour=$(TZ=Asia/Jakarta date +%-H)
-          if (( hour >= 15 || hour <= 5 )); then
-            echo "run=true" >> $GITHUB_OUTPUT
-          else
-            echo "run=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Checkout Repository
-        if: steps.check_time.outputs.run == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Cache Virtual Environment
-        if: steps.check_time.outputs.run == 'true'
         uses: actions/cache@v4
         with:
           path: .venv
@@ -38,7 +24,6 @@ jobs:
             venv-${{ runner.os }}-
 
       - name: Install UV Package Manager
-        if: steps.check_time.outputs.run == 'true'
         uses: astral-sh/setup-uv@v3
         with:
           version: "latest"
@@ -46,14 +31,12 @@ jobs:
           cache-dependency-glob: "uv.lock"
 
       - name: Setup Python System
-        if: steps.check_time.outputs.run == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Cache Playwright Browsers
         id: cache-pw
-        if: steps.check_time.outputs.run == 'true'
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
@@ -61,23 +44,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-playwright
 
-      - name: Install Playwright Chromium (Bypass Cache if needed)
-        if: steps.check_time.outputs.run == 'true' && steps.cache-pw.outputs.cache-hit != 'true'
+      - name: Install Playwright Chromium
+        if: steps.cache-pw.outputs.cache-hit != 'true'
         run: |
           uv run playwright install chromium
           uv run playwright install-deps
 
       - name: Execute Main Soccer Scraper
-        if: steps.check_time.outputs.run == 'true'
         run: |
-          # Menyalakan otak utama fetch.py sepakbola kaki kita
+          # Mengeksekusi pusat kendali fetch.py sepakbola kita
           uv run fetch.py
 
       - name: Commit and Push Changes to Github
-        if: steps.check_time.outputs.run == 'true'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "⚽ Automated Update Football Playlist"
-          # Kita pastikan mencatat file keluaran hasil editan fetch.py bola kita
           file_pattern: "TV.m3u8 events.m3u8"
           commit_author: "GitHub Actions Bot <actions@github.com>"
