@@ -44,17 +44,18 @@ async def main() -> None:
     log.info(f"{'=' * 10} FORK SOCCER Scraper Started {'=' * 10}")
 
     base_m3u8, tvg_chno = load_base()
+    hdl_brwsr = None
 
     async with async_playwright() as p:
         try:
+            # Hanya gunakan satu browser bawaan yang aman untuk server otomatis
             hdl_brwsr = await network.browser(p)
-            xtrnl_brwsr = await network.browser(p, external=True)
 
             pw_tasks = [
                 asyncio.create_task(embedhd.scrape(hdl_brwsr)),
-                asyncio.create_task(fsports.scrape(xtrnl_brwsr)),
+                asyncio.create_task(fsports.scrape(hdl_brwsr)),
                 asyncio.create_task(roxie.scrape(hdl_brwsr)),
-                asyncio.create_task(sportspass.scrape(xtrnl_brwsr)),
+                asyncio.create_task(sportspass.scrape(hdl_brwsr)),
             ]
 
             httpx_tasks = [
@@ -74,12 +75,12 @@ async def main() -> None:
             await asyncio.gather(*(pw_tasks + httpx_tasks))
 
             # others
-            await cdnlivetv.scrape(xtrnl_brwsr)
-            await watchfooty.scrape(xtrnl_brwsr)
+            await cdnlivetv.scrape(hdl_brwsr)
+            await watchfooty.scrape(hdl_brwsr)
 
         finally:
-            await hdl_brwsr.close()
-            await xtrnl_brwsr.close()
+            if hdl_brwsr:
+                await hdl_brwsr.close()
             await network.client.aclose()
 
     additions = (
@@ -105,13 +106,11 @@ async def main() -> None:
     live_events: list[str] = []
     combined_channels: list[str] = []
     
-    # Counter pembuat nomor urut channel khusus bola kaki
     soccer_count = 0
 
     for event_name, event_info in sorted(additions.items()):
         name_upper = event_name.upper()
         
-        # Saringan ketat pembuang cabang non-sepakbola (Dibuat multi-baris agar tidak terpotong)
         banned_sports = [
             "BASKETBALL", "VOLLEYBALL", "TENNIS", "WIMBLEDON", 
             "MLB", "BASEBALL", "NFL", "F1", "MOTOGP", 
@@ -120,7 +119,6 @@ async def main() -> None:
         if any(banned in name_upper for banned in banned_sports):
             continue
             
-        # Memastikan aroma kompetisi sepakbola kaki tetap terjaga (Dibuat multi-baris)
         keywords_bola = [
             "FOOTBALL", "SOCCER", "LIGA", "LEAGUE", "CUP", 
             "UEFA", "FIFA", "COPA", "CHAMPIONSHIP", "VS", "X"
