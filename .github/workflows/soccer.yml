@@ -32,7 +32,7 @@ jobs:
       - name: Setup Python System
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Cache Playwright Browsers
         id: cache-pw
@@ -51,13 +51,11 @@ jobs:
 
       - name: Execute Main Soccer Scraper
         run: |
-          # Diperbaiki ke arah folder M3U8/ sesuai struktur repo asli Doms
           uv run M3U8/fetch.py
 
       - name: Commit and Push Changes to Github
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "⚽ Automated Update Football Playlist"
-          # Hasil output fetch.py juga akan tersimpan di dalam folder atau sejajar dengan letak script-nya
           file_pattern: "TV.m3u8 events.m3u8 M3U8/TV.m3u8 M3U8/events.m3u8"
           commit_author: "GitHub Actions Bot <actions@github.com>"
