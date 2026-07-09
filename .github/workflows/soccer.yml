@@ -2,9 +2,8 @@ name: Soccer IPTV Scraper (UV Powered)
 
 on:
   schedule:
-    # Berjalan otomatis setiap 2 jam sekali agar aman dan hemat kuota
     - cron: "0 */2 * * *"
-  workflow_dispatch: # Mengizinkan tombol manual "Run workflow" kapan saja
+  workflow_dispatch: 
 
 jobs:
   soccer-fetcher:
@@ -52,12 +51,13 @@ jobs:
 
       - name: Execute Main Soccer Scraper
         run: |
-          # Mengeksekusi pusat kendali fetch.py sepakbola kita
-          uv run fetch.py
+          # Diperbaiki ke arah folder M3U8/ sesuai struktur repo asli Doms
+          uv run M3U8/fetch.py
 
       - name: Commit and Push Changes to Github
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "⚽ Automated Update Football Playlist"
-          file_pattern: "TV.m3u8 events.m3u8"
+          # Hasil output fetch.py juga akan tersimpan di dalam folder atau sejajar dengan letak script-nya
+          file_pattern: "TV.m3u8 events.m3u8 M3U8/TV.m3u8 M3U8/events.m3u8"
           commit_author: "GitHub Actions Bot <actions@github.com>"
